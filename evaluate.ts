@@ -11,4 +11,8 @@ const result = await evaluate({
   },
 });
 
-console.log(result);
+console.log(JSON.stringify({
+  modelId: result.response.modelId,
+  answers: result.answers,
+  usage: result.usage,
+}, null, 2));

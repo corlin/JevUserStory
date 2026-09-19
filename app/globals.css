@@ -38,6 +38,10 @@ button:focus-visible, a:focus-visible { outline: 3px solid #818cf8; outline-offs
 .queue-count strong { font-size: 2.5rem; line-height: 1; }
 .queue-count span { color: var(--muted); font-size: .7rem; text-transform: uppercase; }
 .queue-notice { display: flex; align-items: center; gap: 10px; margin: 20px 0; color: var(--muted); font-size: .78rem; }
+.queue-filters { display: flex; align-items: center; gap: 7px; margin: 0 0 12px; }
+.queue-filters button { border: 1px solid #d0d5dd; border-radius: 999px; padding: 7px 11px; color: #475467; background: white; font-size: .7rem; font-weight: 750; cursor: pointer; }
+.queue-filters button[aria-pressed="true"] { border-color: var(--ink); color: white; background: var(--ink); }
+.queue-filters span { margin-left: auto; color: var(--muted); font-size: .68rem; }
 .case-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
 .case-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
 .case-table th { padding: 12px 15px; color: var(--muted); background: #ecebe6; text-align: left; font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; }
@@ -125,8 +129,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #818cf8; outline-offs
 .review-success { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-color: #abefc6; background: #ecfdf3; color: #067647; font-size: .78rem; }
 
 @media (max-width: 900px) {
-  .app-shell { grid-template-columns: 1fr; }
-  .app-sidebar { position: static; height: auto; padding: 14px 16px; }
+  .app-shell { grid-template-columns: minmax(0, 1fr); }
+  .app-sidebar { position: static; min-width: 0; height: auto; padding: 14px 16px; }
   .brand { padding-bottom: 12px; }
   .app-nav { display: flex; overflow-x: auto; }
   .nav-item { flex: 0 0 auto; }
@@ -145,4 +149,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid #818cf8; outline-offs
   .fact-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .action-controls { justify-content: space-between; }
   .primary-button { flex: 1; }
+  .case-table-wrap { overflow: visible; border: 0; background: transparent; }
+  .case-table, .case-table tbody, .case-table tr, .case-table td { display: block; width: 100%; }
+  .case-table thead { display: none; }
+  .case-table tr { position: relative; margin-bottom: 10px; padding: 15px 50px 15px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+  .case-table td { max-width: none; padding: 5px 0; border: 0; }
+  .case-table td:first-child { min-width: 0; }
+  .case-table td:last-child { position: absolute; top: 15px; right: 12px; width: 30px; padding: 0; }
 }

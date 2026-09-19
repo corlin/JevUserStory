@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const notFound = vi.hoisted(() => vi.fn(() => {
@@ -8,6 +8,8 @@ vi.mock('next/navigation', () => ({ notFound }));
 
 import CasePage from '../../app/cases/[caseId]/page';
 import { CaseWorkspace } from '../../components/case-workspace';
+import { CaseQueue } from '../../components/case-queue';
+import { DEMO_CASES } from '../../src/fixtures/cases';
 import { ReviewForm } from '../../components/review-form';
 import { getDemoCase } from '../../src/fixtures/cases';
 
@@ -38,5 +40,12 @@ describe('case workspace', () => {
     expect(screen.getByRole('button', { name: '修改退款' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '升级处理' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '拒绝退款' })).toBeTruthy();
+  });
+
+  it('filters the queue by language', () => {
+    render(<CaseQueue cases={DEMO_CASES} />);
+    fireEvent.click(screen.getByRole('button', { name: '中文案件' }));
+    expect(screen.queryByText('DEMO-001', { exact: true })).toBeNull();
+    expect(screen.getAllByText('zh-CN').length).toBeGreaterThan(0);
   });
 });

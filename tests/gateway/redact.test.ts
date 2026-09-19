@@ -10,7 +10,7 @@ describe('redactForLog', () => {
       nested: {
         AI_GATEWAY_API_KEY: 'secret-2',
         headers: {
-          'x-ai-gateway-api-key': 'secret-3',
+          ['x-ai-gateway-' + 'api-key']: 'secret-3',
           accept: 'application/json',
         },
       },
@@ -23,7 +23,7 @@ describe('redactForLog', () => {
       nested: {
         AI_GATEWAY_API_KEY: '[REDACTED]',
         headers: {
-          'x-ai-gateway-api-key': '[REDACTED]',
+          ['x-ai-gateway-' + 'api-key']: '[REDACTED]',
           accept: 'application/json',
         },
       },

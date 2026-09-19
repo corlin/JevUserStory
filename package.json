@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm test && npm run build && node scripts/check-no-secrets.mjs",
+    "live:smoke": "tsx --env-file=.env.local scripts/live-smoke.ts",
     "example:text": "tsx --env-file=.env.local index.ts",
     "example:evaluate": "tsx --env-file=.env.local evaluate.ts"
   },
