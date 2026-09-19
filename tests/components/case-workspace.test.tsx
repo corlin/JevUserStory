@@ -4,7 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const notFound = vi.hoisted(() => vi.fn(() => {
   throw new Error('NEXT_NOT_FOUND');
 }));
-vi.mock('next/navigation', () => ({ notFound }));
+vi.mock('next/navigation', () => ({
+  notFound,
+  usePathname: () => '/cases/DEMO-001',
+}));
 
 import CasePage from '../../app/cases/[caseId]/page';
 import { CaseWorkspace } from '../../components/case-workspace';

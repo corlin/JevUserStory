@@ -56,7 +56,7 @@ export interface PolicyDecision {
   action: PolicyAction;
   reasonCodes: string[];
   proposedRefundCents: number;
-  policyVersion: 'resolveops-policy-v1';
+  policyVersion: string;
 }
 
 export type GroundTruthAnswer = boolean | string | number;
@@ -110,3 +110,145 @@ export interface EvaluationRecord {
   latencyMs: number;
   createdAt: string;
 }
+
+export interface PolicyThresholds {
+  id?: string;
+  refundAutoMinimum: number;
+  policySupportMinimum: number;
+  injectionReviewMinimum: number;
+  booleanUncertainLower: number;
+  booleanUncertainUpper: number;
+  highRiskRefundCents: number;
+  replyReviewMinimum: number;
+  choiceTopMinimum: number;
+  choiceMarginMinimum: number;
+  scoreTopMinimum: number;
+  evidenceScoreMinimum: number;
+}
+
+export interface PolicyVersionRecord {
+  id: string;
+  version: string;
+  name: string;
+  description?: string;
+  thresholds: PolicyThresholds;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface QuestionSetVersionRecord {
+  id: string;
+  version: string;
+  name: string;
+  description?: string;
+  questions: Record<QuestionId, QuestionDefinition>;
+  createdAt: string;
+}
+
+export type ExperimentSourceType = 'baseline' | 'live';
+export type ExperimentStatus = 'running' | 'completed' | 'failed';
+
+export interface ExperimentRecord {
+  id: string;
+  modelId: string;
+  questionVersion: string;
+  policyVersion: string;
+  datasetSlice: string;
+  status: ExperimentStatus;
+  sourceType: ExperimentSourceType;
+  totalCases: number;
+  completedCases: number;
+  createdAt: string;
+  finishedAt?: string;
+}
+
+export interface ExperimentCaseResultRecord {
+  id: string;
+  experimentId: string;
+  caseId: CaseFixture['id'];
+  answers: Record<QuestionId, NormalizedAnswer>;
+  groundTruth: Record<QuestionId, GroundTruthAnswer>;
+  latencyMs: number;
+  usage: EvaluationUsage;
+  policyAction: PolicyAction;
+  reasonCodes: string[];
+  proposedRefundCents: number;
+  createdAt: string;
+}
+
+export interface CalibrationBin {
+  binIndex: number;
+  binLower: number;
+  binUpper: number;
+  averageConfidence: number;
+  empiricalAccuracy: number;
+  count: number;
+}
+
+export interface ChoiceMetric {
+  questionId: QuestionId;
+  accuracy: number;
+  macroF1: number;
+  total: number;
+  correct: number;
+}
+
+export interface BooleanMetric {
+  questionId: QuestionId;
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  ece: number;
+  bins: CalibrationBin[];
+}
+
+export interface ScoreMetric {
+  questionId: QuestionId;
+  mae: number;
+  withinOneAccuracy: number;
+  total: number;
+}
+
+export interface BusinessPolicyMetrics {
+  totalCases: number;
+  autoCount: number;
+  autoRate: number;
+  confirmCount: number;
+  confirmRate: number;
+  reviewCount: number;
+  reviewRate: number;
+  blockCount: number;
+  blockRate: number;
+  falseAutomationCount: number;
+  falseAutomationRate: number;
+}
+
+export interface SystemPerformanceMetrics {
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+  p99LatencyMs: number;
+  averageLatencyMs: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+}
+
+export interface ExperimentMetricsSummary {
+  experimentId: string;
+  totalCases: number;
+  business: BusinessPolicyMetrics;
+  performance: SystemPerformanceMetrics;
+  choiceMetrics: Record<string, ChoiceMetric>;
+  booleanMetrics: Record<string, BooleanMetric>;
+  scoreMetrics: Record<string, ScoreMetric>;
+  sliceMetrics?: Record<string, {
+    totalCases: number;
+    accuracy: number;
+    autoRate: number;
+    reviewRate: number;
+    blockRate: number;
+  }>;
+}
+
