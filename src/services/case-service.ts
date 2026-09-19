@@ -7,7 +7,13 @@ import { openDatabase, type ResolveOpsDatabase } from '../db/client';
 import {
   saveEvaluationRun,
   savePolicyDecision,
+  findLatestEvaluationRun,
+  findLatestReviewDecision,
+  findLatestReplyRun,
+  findPolicyDecisionByRun,
   type PolicyDecisionRecord,
+  type ReplyRunRecord,
+  type ReviewDecisionRecord,
 } from '../db/run-repository';
 import { DEMO_CASES } from '../fixtures/cases';
 import { evaluateCase } from '../gateway/evaluate-case';
@@ -18,8 +24,16 @@ export type CaseEvaluationResult = {
   policyDecision: PolicyDecisionRecord;
 };
 
+export type CaseWorkspaceState = {
+  run?: EvaluationRecord;
+  policyDecision?: PolicyDecisionRecord;
+  review?: ReviewDecisionRecord;
+  reply?: ReplyRunRecord;
+};
+
 export type CaseService = {
   listCases(filters?: CaseFilters): CaseFixture[];
+  getCaseWorkspaceState(caseId: string): CaseWorkspaceState;
   evaluateAndPersistCase(caseId: string): Promise<CaseEvaluationResult>;
 };
 
@@ -32,6 +46,7 @@ type CaseServiceDependencies = {
   savePolicyDecision(decision: PolicyDecisionRecord): PolicyDecisionRecord;
   createId(): string;
   now(): Date;
+  getCaseWorkspaceState?(caseId: string): CaseWorkspaceState;
 };
 
 function buildEvaluationState(caseFixture: CaseFixture): string {
@@ -48,6 +63,10 @@ export function createCaseService(dependencies: CaseServiceDependencies): CaseSe
   return {
     listCases(filters = {}) {
       return dependencies.listCases(filters);
+    },
+
+    getCaseWorkspaceState(caseId) {
+      return dependencies.getCaseWorkspaceState?.(caseId) ?? {};
     },
 
     async evaluateAndPersistCase(caseId) {
@@ -94,11 +113,21 @@ function getResolvedDefaultService(): CaseService {
     savePolicyDecision: (record) => savePolicyDecision(database, record),
     createId: randomUUID,
     now: () => new Date(),
+    getCaseWorkspaceState: (caseId) => {
+      const run = findLatestEvaluationRun(database, caseId);
+      return {
+        run,
+        policyDecision: run ? findPolicyDecisionByRun(database, run.id) : undefined,
+        review: findLatestReviewDecision(database, caseId),
+        reply: findLatestReplyRun(database, caseId),
+      };
+    },
   });
   return resolvedDefaultService;
 }
 
 export const defaultCaseService: CaseService = {
   listCases: (filters) => getResolvedDefaultService().listCases(filters),
+  getCaseWorkspaceState: (caseId) => getResolvedDefaultService().getCaseWorkspaceState(caseId),
   evaluateAndPersistCase: (caseId) => getResolvedDefaultService().evaluateAndPersistCase(caseId),
 };

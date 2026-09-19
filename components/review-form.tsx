@@ -8,18 +8,19 @@ type ReviewFormProps = {
   caseId: string;
   maximumRefundCents: number;
   onRecorded?: (decision: PublicReviewDecision) => void;
+  initialDecision?: PublicReviewDecision;
 };
 
 function createIdempotencyKey(): string {
   return globalThis.crypto?.randomUUID?.() ?? `review-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function ReviewForm({ caseId, maximumRefundCents, onRecorded }: ReviewFormProps) {
+export function ReviewForm({ caseId, maximumRefundCents, onRecorded, initialDecision }: ReviewFormProps) {
   const key = useRef<string>(createIdempotencyKey());
   const [refundCents, setRefundCents] = useState(maximumRefundCents);
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [decision, setDecision] = useState<PublicReviewDecision>();
+  const [decision, setDecision] = useState<PublicReviewDecision | undefined>(initialDecision);
   const [errorCode, setErrorCode] = useState<string>();
 
   async function submit(action: 'confirm_refund' | 'modify_refund' | 'escalate' | 'reject') {

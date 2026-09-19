@@ -95,4 +95,37 @@ describe('evaluatePolicy', () => {
     expect(decision.action).toBe('review');
     expect(decision.reasonCodes).toContain('PAYMENT_NOT_VERIFIED');
   });
+
+  it('requires deterministic duplicate-charge facts before automatic refund', () => {
+    const singleChargeCase = { ...safeCase, payments: [safeCase.payments[0]!] };
+    const decision = evaluatePolicy(singleChargeCase, { status: 'valid', answers: clearSafeAnswers });
+    expect(decision.action).toBe('review');
+    expect(decision.reasonCodes).toContain('REFUND_GROUND_NOT_VERIFIED');
+  });
+
+  it('routes low evidence and diffuse typed distributions to review', () => {
+    const lowEvidence = {
+      ...clearSafeAnswers,
+      evidence_quality: {
+        type: 'score' as const,
+        score: 0,
+        probabilities: { '0': 1, '1': 0, '2': 0, '3': 0 },
+      },
+    };
+    expect(evaluatePolicy(safeCase, { status: 'valid', answers: lowEvidence }).reasonCodes)
+      .toContain('EVIDENCE_INSUFFICIENT');
+
+    const diffuseChoice = {
+      ...clearSafeAnswers,
+      department: {
+        type: 'choice' as const,
+        choice: 'billing',
+        probabilities: { billing: 0.45, shipping: 0.4, other: 0.15 },
+        topProbability: 0.45,
+        topTwoMargin: 0.05,
+      },
+    };
+    expect(evaluatePolicy(safeCase, { status: 'valid', answers: diffuseChoice }).reasonCodes)
+      .toContain('CHOICE_UNCERTAIN');
+  });
 });

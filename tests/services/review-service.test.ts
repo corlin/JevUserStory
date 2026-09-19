@@ -56,4 +56,21 @@ describe('review service', () => {
     expect(countReviewDecisions(database)).toBe(0);
     database.close();
   });
+
+  it('does not authorize a refund when duplicate-charge facts are absent', async () => {
+    const database = openDatabase(':memory:');
+    const original = DEMO_CASES[0]!;
+    const singleCharge = { ...original, payments: [original.payments[0]!] };
+    seedCases(database, [singleCharge]);
+    const service = createReviewService({
+      findCase: (caseId) => findCase(database, caseId),
+      saveReviewDecision: (record) => saveReviewDecision(database, record),
+      createId: () => 'review-single',
+      now: () => new Date(0),
+    });
+    await expect(service.recordReview({
+      caseId: 'DEMO-001', idempotencyKey: 'single-charge', action: 'modify_refund', refundCents: 1, note: '',
+    })).rejects.toThrowError('REFUND_EXCEEDS_VERIFIED_AMOUNT');
+    database.close();
+  });
 });

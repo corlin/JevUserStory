@@ -42,4 +42,16 @@ describe('POST /api/cases/:caseId/review', () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: { code: 'INVALID_REVIEW_ACTION' } });
   });
+
+  it('returns a stable 409 code for conflicting idempotency payloads', async () => {
+    const handler = createPostReviewHandler({
+      recordReview: async () => { throw new Error('IDEMPOTENCY_KEY_CONFLICT'); },
+    });
+    const response = await handler(request({
+      idempotencyKey: 'idem-001', action: 'escalate', refundCents: 0, note: 'changed payload',
+    }), context);
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: { code: 'IDEMPOTENCY_KEY_CONFLICT' } });
+  });
 });

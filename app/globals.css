@@ -80,6 +80,14 @@ button:focus-visible, a:focus-visible { outline: 3px solid #818cf8; outline-offs
 .trace-index { color: #98a2b3; font-family: ui-monospace, monospace; font-size: .66rem; padding-top: 3px; }
 .trace-question { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .trace-question strong { font-size: .8rem; }
+.trace-provenance { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 16px 20px; border-bottom: 1px solid var(--line); background: #faf9f6; }
+.trace-provenance div { min-width: 0; }
+.trace-provenance dt { color: var(--muted); font-size: .6rem; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+.trace-provenance dd { margin: 3px 0 0; overflow-wrap: anywhere; font-family: ui-monospace, monospace; font-size: .66rem; }
+.question-definition { margin-top: 9px; color: var(--muted); font-size: .68rem; line-height: 1.4; }
+.question-definition summary { cursor: pointer; color: #4f46e5; font-weight: 700; }
+.question-definition p { margin: 8px 0; }
+.question-criteria { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .trace-primary { margin: 10px 0; font-size: .82rem; font-weight: 750; }
 .distribution-list, .rubric-list { margin: 9px 0; padding: 0; color: var(--muted); font-size: .68rem; list-style: none; }
 .distribution-list { display: flex; flex-wrap: wrap; gap: 5px 10px; }

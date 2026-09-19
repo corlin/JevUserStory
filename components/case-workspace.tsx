@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { CaseFixture } from '../src/domain/types';
 import type { ReplyRunRecord } from '../src/db/run-repository';
 import type { CaseEvaluationResult } from '../src/services/case-service';
+import type { CaseWorkspaceState } from '../src/services/case-service';
 import type { PublicReviewDecision } from '../src/services/review-service';
 import { AppShell } from './app-shell';
 import { CaseFacts } from './case-facts';
@@ -13,12 +14,17 @@ import { PolicyDecision } from './policy-decision';
 import { ReviewForm } from './review-form';
 import { StatusBadge } from './ui/status-badge';
 
-export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
-  const [result, setResult] = useState<CaseEvaluationResult>();
+export function CaseWorkspace({ caseFixture, initialState = {} }: { caseFixture: CaseFixture; initialState?: CaseWorkspaceState }) {
+  const [result, setResult] = useState<CaseEvaluationResult | undefined>(
+    initialState.run && initialState.policyDecision
+      ? { run: initialState.run, policyDecision: initialState.policyDecision }
+      : undefined,
+  );
   const [errorCode, setErrorCode] = useState<string>();
   const [loading, setLoading] = useState(false);
-  const [review, setReview] = useState<PublicReviewDecision>();
-  const [reply, setReply] = useState<ReplyRunRecord>();
+  const initialReview = initialState.review ? { ...initialState.review, simulation: true as const } : undefined;
+  const [review, setReview] = useState<PublicReviewDecision | undefined>(initialReview);
+  const [reply, setReply] = useState<ReplyRunRecord | undefined>(initialState.reply);
   const [replyError, setReplyError] = useState<string>();
   const [generatingReply, setGeneratingReply] = useState(false);
 
@@ -34,6 +40,8 @@ export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
         return;
       }
       setResult(payload);
+      setReview(undefined);
+      setReply(undefined);
     } catch {
       setResult(undefined);
       setErrorCode('GATEWAY_UNAVAILABLE');
@@ -89,9 +97,9 @@ export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
               replyError={replyError}
               review={review}
             />
-            {result ? <ReviewForm caseId={caseFixture.id} maximumRefundCents={caseFixture.order.totalCents} onRecorded={setReview} /> : null}
+            {result ? <ReviewForm caseId={caseFixture.id} initialDecision={review} maximumRefundCents={caseFixture.order.totalCents} onRecorded={setReview} /> : null}
           </div>
-          <DecisionTrace errorCode={errorCode} onRetry={runEvaluation} outcome={result?.run.outcome} />
+          <DecisionTrace errorCode={errorCode} onRetry={runEvaluation} outcome={result?.run.outcome} run={result?.run} />
         </div>
       </main>
     </AppShell>

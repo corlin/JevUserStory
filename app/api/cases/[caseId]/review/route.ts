@@ -29,6 +29,9 @@ export function createPostReviewHandler(service: ReviewService) {
       if (code === 'CASE_NOT_FOUND') {
         return Response.json({ error: { code } }, { status: 404 });
       }
+      if (code === 'IDEMPOTENCY_KEY_CONFLICT') {
+        return Response.json({ error: { code } }, { status: 409 });
+      }
       if (CLIENT_ERRORS.has(code)) {
         return Response.json({ error: { code } }, { status: 400 });
       }

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { EvaluationOutcome, NormalizedAnswer, QuestionId } from '../../src/domain/types';
+import type { EvaluationOutcome, EvaluationRecord, NormalizedAnswer, QuestionId } from '../../src/domain/types';
 import { DecisionTrace } from '../../components/decision-trace';
 
 afterEach(cleanup);
@@ -32,7 +32,17 @@ const answer = (overrides: Partial<Record<QuestionId, NormalizedAnswer>> = {}): 
 
 describe('DecisionTrace', () => {
   it('presents typed values and complete distributions without relying on color', () => {
-    render(<DecisionTrace outcome={answer()} />);
+    const run: EvaluationRecord = {
+      id: 'run-1',
+      caseId: 'DEMO-001',
+      modelId: 'typesafe-ai/jev',
+      questionVersion: 'resolveops-questions-v1',
+      outcome: answer(),
+      usage: { inputTokens: 120, outputTokens: 30, totalTokens: 150 },
+      latencyMs: 742,
+      createdAt: '2026-09-20T00:00:00.000Z',
+    };
+    render(<DecisionTrace outcome={run.outcome} run={run} />);
 
     expect(screen.getAllByText('Boolean').length).toBeGreaterThan(0);
     expect(screen.getByText('P(yes) 96%')).toBeTruthy();
@@ -44,6 +54,12 @@ describe('DecisionTrace', () => {
     expect(screen.getAllByText('Score').length).toBeGreaterThan(0);
     expect(screen.getByText(/Level 0 · Cosmetic or informational issue/)).toBeTruthy();
     expect(screen.getByText('Level 2 — 65%')).toBeTruthy();
+    expect(screen.getByText('typesafe-ai/jev')).toBeTruthy();
+    expect(screen.getByText('resolveops-questions-v1')).toBeTruthy();
+    expect(screen.getByText('150 tokens')).toBeTruthy();
+    expect(screen.getByText('742 ms')).toBeTruthy();
+    expect(screen.getByText(/Which team should primarily handle/)).toBeTruthy();
+    expect(screen.getByText(/billing: Charges, payments, duplicate billing/)).toBeTruthy();
   });
 
   it('shows a stable error code and an accessible retry action', () => {

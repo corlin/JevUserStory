@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto';
 
 import {
   experimental_evaluate as evaluate,
+  InvalidResponseDataError,
+  JSONParseError,
+  TypeValidationError,
   type Experimental_EvaluationResult,
 } from 'ai';
 
@@ -107,6 +110,22 @@ export async function evaluateCase(
       createdAt: now().toISOString(),
     };
   } catch (error) {
+    if (
+      InvalidResponseDataError.isInstance(error)
+      || JSONParseError.isInstance(error)
+      || TypeValidationError.isInstance(error)
+    ) {
+      return {
+        id: createId(),
+        caseId: options.caseId,
+        modelId: MODEL_ID,
+        questionVersion: QUESTION_SET_VERSION,
+        outcome: { status: 'invalid', errorCode: 'INVALID_EVALUATION_RESPONSE' },
+        usage: {},
+        latencyMs: Math.max(0, Math.round(performance.now() - startedAt)),
+        createdAt: now().toISOString(),
+      };
+    }
     const code = mapGatewayError(error);
     options.logger?.error('Jev evaluation failed', redactForLog({
       code,

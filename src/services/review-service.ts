@@ -8,6 +8,7 @@ import {
   type ReviewDecisionRecord,
 } from '../db/run-repository';
 import { getDefaultDatabase } from './case-service';
+import { calculateVerifiedRefundCents } from '../policy/refund-facts';
 
 const REVIEW_ACTIONS = new Set<ReviewAction>([
   'confirm_refund',
@@ -37,13 +38,6 @@ type ReviewDependencies = {
   now(): Date;
 };
 
-function verifiedRefundLimit(caseFixture: CaseFixture): number {
-  const capturedAmounts = caseFixture.payments
-    .filter((payment) => payment.status === 'captured')
-    .map((payment) => payment.amountCents);
-  return Math.min(caseFixture.order.totalCents, Math.max(0, ...capturedAmounts));
-}
-
 export function createReviewService(dependencies: ReviewDependencies): ReviewService {
   return {
     async recordReview(input) {
@@ -52,7 +46,7 @@ export function createReviewService(dependencies: ReviewDependencies): ReviewSer
       if (!caseFixture) throw new Error('CASE_NOT_FOUND');
       if (!REVIEW_ACTIONS.has(input.action as ReviewAction)) throw new Error('INVALID_REVIEW_ACTION');
       if (!Number.isInteger(input.refundCents) || input.refundCents < 0) throw new Error('INVALID_REFUND_AMOUNT');
-      if (input.refundCents > verifiedRefundLimit(caseFixture)) throw new Error('REFUND_EXCEEDS_VERIFIED_AMOUNT');
+      if (input.refundCents > calculateVerifiedRefundCents(caseFixture)) throw new Error('REFUND_EXCEEDS_VERIFIED_AMOUNT');
       if ((input.action === 'escalate' || input.action === 'reject') && input.refundCents !== 0) {
         throw new Error('INVALID_REFUND_AMOUNT');
       }

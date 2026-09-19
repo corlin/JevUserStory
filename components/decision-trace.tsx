@@ -1,6 +1,6 @@
 'use client';
 
-import type { EvaluationOutcome, QuestionId } from '../src/domain/types';
+import type { EvaluationOutcome, EvaluationRecord, QuestionDefinition, QuestionId } from '../src/domain/types';
 import { QUESTION_SET_V1 } from '../src/gateway/question-set-v1';
 import { ProbabilityBar } from './ui/probability-bar';
 import { StatusBadge } from './ui/status-badge';
@@ -23,11 +23,25 @@ function percentage(value: number): string {
 
 type DecisionTraceProps = {
   outcome?: EvaluationOutcome;
+  run?: EvaluationRecord;
   errorCode?: string;
   onRetry?: () => void;
 };
 
-export function DecisionTrace({ outcome, errorCode, onRetry }: DecisionTraceProps) {
+function CriteriaList({ definition }: { definition: QuestionDefinition }) {
+  if (!definition.criteria) return null;
+  const isScore = definition.type === 'score';
+  const criteria: Array<readonly [string, string]> = definition.type === 'score'
+    ? definition.criteria.map((description, index) => [`Level ${index}`, description] as const)
+    : Object.entries(definition.criteria);
+  return (
+    <ul className="question-criteria">
+      {criteria.map(([label, description]) => <li key={label}>{label}{isScore ? ' · ' : ': '}{description}</li>)}
+    </ul>
+  );
+}
+
+export function DecisionTrace({ outcome, run, errorCode, onRetry }: DecisionTraceProps) {
   const failureCode = errorCode ?? (outcome?.status === 'invalid' ? outcome.errorCode : undefined);
   return (
     <aside className="decision-panel" aria-labelledby="trace-title">
@@ -37,6 +51,15 @@ export function DecisionTrace({ outcome, errorCode, onRetry }: DecisionTraceProp
           {outcome?.status === 'valid' ? 'Complete' : failureCode ? 'Needs review' : 'Ready'}
         </StatusBadge>
       </div>
+
+      {run ? (
+        <dl className="trace-provenance" aria-label="Evaluation provenance">
+          <div><dt>Model</dt><dd>{run.modelId}</dd></div>
+          <div><dt>Questions</dt><dd>{run.questionVersion}</dd></div>
+          <div><dt>Usage</dt><dd>{run.usage.totalTokens === undefined ? 'Unavailable' : `${run.usage.totalTokens} tokens`}</dd></div>
+          <div><dt>Latency</dt><dd>{run.latencyMs} ms</dd></div>
+        </dl>
+      ) : null}
 
       {failureCode ? (
         <div className="trace-error" role="alert">
@@ -55,6 +78,11 @@ export function DecisionTrace({ outcome, errorCode, onRetry }: DecisionTraceProp
                   <strong>{LABELS[id]}</strong>
                   <StatusBadge>{answer.type === 'boolean' ? 'Boolean' : answer.type === 'choice' ? 'Choice' : 'Score'}</StatusBadge>
                 </div>
+                <details className="question-definition">
+                  <summary>Question definition</summary>
+                  <p>{QUESTION_SET_V1[id].instructions}</p>
+                  <CriteriaList definition={QUESTION_SET_V1[id]} />
+                </details>
                 {answer.type === 'boolean' ? (
                   <>
                     <p className="trace-primary">P(yes) {percentage(answer.probability)}</p>
@@ -71,11 +99,6 @@ export function DecisionTrace({ outcome, errorCode, onRetry }: DecisionTraceProp
                 ) : (
                   <>
                     <p className="trace-primary">Score {answer.score.toFixed(2)}</p>
-                    <ol className="rubric-list">
-                      {QUESTION_SET_V1[id].type === 'score' ? QUESTION_SET_V1[id].criteria.map((level, levelIndex) => (
-                        <li key={level}>Level {levelIndex} · {level}</li>
-                      )) : null}
-                    </ol>
                     <ul className="distribution-list">
                       {Object.entries(answer.probabilities).map(([level, value]) => <li key={level}>Level {level} — {percentage(value)}</li>)}
                     </ul>

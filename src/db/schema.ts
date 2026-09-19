@@ -43,7 +43,7 @@ export const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS reply_runs (
     id TEXT PRIMARY KEY,
     case_id TEXT NOT NULL,
-    review_id TEXT NOT NULL UNIQUE,
+    review_id TEXT NOT NULL,
     draft TEXT NOT NULL,
     verification_json TEXT NOT NULL,
     status TEXT NOT NULL,
@@ -55,4 +55,6 @@ export const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_cases_language ON cases(language);
   CREATE INDEX IF NOT EXISTS idx_evaluation_runs_case ON evaluation_runs(case_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_reviews_case ON review_decisions(case_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_replies_review ON reply_runs(review_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_replies_case ON reply_runs(case_id, created_at);
 `;

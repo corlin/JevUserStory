@@ -13,6 +13,16 @@ type EvaluationRow = {
   created_at: string;
 };
 
+type PolicyRow = {
+  id: string;
+  run_id: string;
+  policy_version: PolicyDecision['policyVersion'];
+  action: PolicyDecision['action'];
+  reason_codes_json: string;
+  refund_cents: number;
+  created_at: string;
+};
+
 export type PolicyDecisionRecord = PolicyDecision & {
   id: string;
   runId: string;
@@ -86,6 +96,18 @@ function parseReview(row: ReviewRow): ReviewDecisionRecord {
   };
 }
 
+function parsePolicy(row: PolicyRow): PolicyDecisionRecord {
+  return {
+    id: row.id,
+    runId: row.run_id,
+    policyVersion: row.policy_version,
+    action: row.action,
+    reasonCodes: JSON.parse(row.reason_codes_json) as string[],
+    proposedRefundCents: row.refund_cents,
+    createdAt: row.created_at,
+  };
+}
+
 function parseReply(row: ReplyRow): ReplyRunRecord {
   return {
     id: row.id,
@@ -140,7 +162,15 @@ export function saveReviewDecision(
     const existing = database
       .prepare('SELECT * FROM review_decisions WHERE idempotency_key = ?')
       .get(input.idempotencyKey) as ReviewRow | undefined;
-    if (existing) return parseReview(existing);
+    if (existing) {
+      const parsed = parseReview(existing);
+      const sameOperation = parsed.caseId === input.caseId
+        && parsed.action === input.action
+        && parsed.refundCents === input.refundCents
+        && parsed.note === input.note;
+      if (!sameOperation) throw new Error('IDEMPOTENCY_KEY_CONFLICT');
+      return parsed;
+    }
 
     database.prepare(`
       INSERT INTO review_decisions (
@@ -167,8 +197,6 @@ export function findReviewDecision(
 }
 
 export function saveReplyRun(database: ResolveOpsDatabase, record: ReplyRunRecord): ReplyRunRecord {
-  const existing = database.prepare('SELECT * FROM reply_runs WHERE review_id = ?').get(record.reviewId) as ReplyRow | undefined;
-  if (existing) return parseReply(existing);
   database.prepare(`
     INSERT INTO reply_runs (
       id, case_id, review_id, draft, verification_json, status, created_at
@@ -177,4 +205,42 @@ export function saveReplyRun(database: ResolveOpsDatabase, record: ReplyRunRecor
     )
   `).run({ ...record, verificationJson: JSON.stringify(record.verification) });
   return record;
+}
+
+export function findLatestEvaluationRun(
+  database: ResolveOpsDatabase,
+  caseId: string,
+): EvaluationRecord | undefined {
+  const row = database.prepare(`
+    SELECT * FROM evaluation_runs WHERE case_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1
+  `).get(caseId) as EvaluationRow | undefined;
+  return row ? parseEvaluation(row) : undefined;
+}
+
+export function findPolicyDecisionByRun(
+  database: ResolveOpsDatabase,
+  runId: string,
+): PolicyDecisionRecord | undefined {
+  const row = database.prepare('SELECT * FROM policy_decisions WHERE run_id = ?').get(runId) as PolicyRow | undefined;
+  return row ? parsePolicy(row) : undefined;
+}
+
+export function findLatestReviewDecision(
+  database: ResolveOpsDatabase,
+  caseId: string,
+): ReviewDecisionRecord | undefined {
+  const row = database.prepare(`
+    SELECT * FROM review_decisions WHERE case_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1
+  `).get(caseId) as ReviewRow | undefined;
+  return row ? parseReview(row) : undefined;
+}
+
+export function findLatestReplyRun(
+  database: ResolveOpsDatabase,
+  caseId: string,
+): ReplyRunRecord | undefined {
+  const row = database.prepare(`
+    SELECT * FROM reply_runs WHERE case_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1
+  `).get(caseId) as ReplyRow | undefined;
+  return row ? parseReply(row) : undefined;
 }
