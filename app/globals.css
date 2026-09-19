@@ -103,6 +103,18 @@ button:focus-visible, a:focus-visible { outline: 3px solid #818cf8; outline-offs
 .status-success { border-color: #abefc6; background: #ecfdf3; color: #067647; }
 .status-warning { border-color: #fedf89; background: #fffaeb; color: #b54708; }
 .status-danger { border-color: #fecdca; background: #fef3f2; color: #b42318; }
+.review-form, .review-success { padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.review-form h2 { margin: 0; font-size: 1.1rem; }
+.review-fields { display: grid; grid-template-columns: minmax(160px, .45fr) 1fr; gap: 12px; margin-top: 18px; }
+.review-fields label { display: grid; gap: 6px; color: var(--muted); font-size: .68rem; font-weight: 700; }
+.review-fields input, .review-fields textarea { width: 100%; min-height: 40px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 10px; color: var(--ink); background: white; }
+.review-fields textarea { min-height: 72px; resize: vertical; }
+.review-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.review-actions button { border: 1px solid #cfd3db; border-radius: 7px; padding: 8px 11px; color: #344054; background: white; font-size: .72rem; font-weight: 750; cursor: pointer; }
+.review-actions button:first-child { border-color: var(--ink); background: var(--ink); color: white; }
+.review-actions button:disabled { cursor: wait; opacity: .55; }
+.form-error { display: inline-block; margin-top: 12px; color: #b42318; font-size: .68rem; }
+.review-success { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-color: #abefc6; background: #ecfdf3; color: #067647; font-size: .78rem; }
 
 @media (max-width: 900px) {
   .app-shell { grid-template-columns: 1fr; }

@@ -8,6 +8,7 @@ import { AppShell } from './app-shell';
 import { CaseFacts } from './case-facts';
 import { DecisionTrace } from './decision-trace';
 import { PolicyDecision } from './policy-decision';
+import { ReviewForm } from './review-form';
 import { StatusBadge } from './ui/status-badge';
 
 export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
@@ -50,6 +51,7 @@ export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
           <div className="case-column">
             <CaseFacts caseFixture={caseFixture} />
             <PolicyDecision decision={result?.policyDecision} loading={loading} onEvaluate={runEvaluation} />
+            {result ? <ReviewForm caseId={caseFixture.id} maximumRefundCents={caseFixture.order.totalCents} /> : null}
           </div>
           <DecisionTrace errorCode={errorCode} onRetry={runEvaluation} outcome={result?.run.outcome} />
         </div>

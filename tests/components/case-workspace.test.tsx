@@ -8,6 +8,7 @@ vi.mock('next/navigation', () => ({ notFound }));
 
 import CasePage from '../../app/cases/[caseId]/page';
 import { CaseWorkspace } from '../../components/case-workspace';
+import { ReviewForm } from '../../components/review-form';
 import { getDemoCase } from '../../src/fixtures/cases';
 
 afterEach(() => {
@@ -29,5 +30,13 @@ describe('case workspace', () => {
   it('uses the Next.js not-found boundary for unknown case IDs', async () => {
     await expect(CasePage({ params: Promise.resolve({ caseId: 'DEMO-999' }) })).rejects.toThrow('NEXT_NOT_FOUND');
     expect(notFound).toHaveBeenCalledOnce();
+  });
+
+  it('exposes confirm, modify, escalate, and reject review actions', () => {
+    render(<ReviewForm caseId="DEMO-001" maximumRefundCents={4900} />);
+    expect(screen.getByRole('button', { name: '确认退款' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '修改退款' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '升级处理' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '拒绝退款' })).toBeTruthy();
   });
 });

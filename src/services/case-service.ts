@@ -76,7 +76,7 @@ export function createCaseService(dependencies: CaseServiceDependencies): CaseSe
 let defaultDatabase: ResolveOpsDatabase | undefined;
 let resolvedDefaultService: CaseService | undefined;
 
-function getDefaultDatabase(): ResolveOpsDatabase {
+export function getDefaultDatabase(): ResolveOpsDatabase {
   defaultDatabase ??= openDatabase(join(process.cwd(), 'data', 'resolveops.sqlite'));
   seedCases(defaultDatabase, DEMO_CASES);
   return defaultDatabase;
