@@ -1,4 +1,5 @@
 import type { EvaluationRecord, PolicyDecision } from '../domain/types';
+import type { ReplyVerification } from '../gateway/verify-reply';
 import type { ResolveOpsDatabase } from './client';
 
 type EvaluationRow = {
@@ -40,6 +41,26 @@ type ReviewRow = {
   created_at: string;
 };
 
+export type ReplyRunRecord = {
+  id: string;
+  caseId: string;
+  reviewId: string;
+  draft: string;
+  verification: ReplyVerification;
+  status: 'approved' | 'review_required' | 'generation_failed';
+  createdAt: string;
+};
+
+type ReplyRow = {
+  id: string;
+  case_id: string;
+  review_id: string;
+  draft: string;
+  verification_json: string;
+  status: ReplyRunRecord['status'];
+  created_at: string;
+};
+
 function parseEvaluation(row: EvaluationRow): EvaluationRecord {
   return {
     id: row.id,
@@ -61,6 +82,18 @@ function parseReview(row: ReviewRow): ReviewDecisionRecord {
     action: row.action,
     refundCents: row.refund_cents,
     note: row.note,
+    createdAt: row.created_at,
+  };
+}
+
+function parseReply(row: ReplyRow): ReplyRunRecord {
+  return {
+    id: row.id,
+    caseId: row.case_id,
+    reviewId: row.review_id,
+    draft: row.draft,
+    verification: JSON.parse(row.verification_json) as ReplyVerification,
+    status: row.status,
     createdAt: row.created_at,
   };
 }
@@ -123,4 +156,25 @@ export function saveReviewDecision(
 export function countReviewDecisions(database: ResolveOpsDatabase): number {
   const row = database.prepare('SELECT COUNT(*) AS count FROM review_decisions').get() as { count: number };
   return row.count;
+}
+
+export function findReviewDecision(
+  database: ResolveOpsDatabase,
+  reviewId: string,
+): ReviewDecisionRecord | undefined {
+  const row = database.prepare('SELECT * FROM review_decisions WHERE id = ?').get(reviewId) as ReviewRow | undefined;
+  return row ? parseReview(row) : undefined;
+}
+
+export function saveReplyRun(database: ResolveOpsDatabase, record: ReplyRunRecord): ReplyRunRecord {
+  const existing = database.prepare('SELECT * FROM reply_runs WHERE review_id = ?').get(record.reviewId) as ReplyRow | undefined;
+  if (existing) return parseReply(existing);
+  database.prepare(`
+    INSERT INTO reply_runs (
+      id, case_id, review_id, draft, verification_json, status, created_at
+    ) VALUES (
+      @id, @caseId, @reviewId, @draft, @verificationJson, @status, @createdAt
+    )
+  `).run({ ...record, verificationJson: JSON.stringify(record.verification) });
+  return record;
 }

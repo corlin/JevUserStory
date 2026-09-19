@@ -3,7 +3,9 @@
 import { useState } from 'react';
 
 import type { CaseFixture } from '../src/domain/types';
+import type { ReplyRunRecord } from '../src/db/run-repository';
 import type { CaseEvaluationResult } from '../src/services/case-service';
+import type { PublicReviewDecision } from '../src/services/review-service';
 import { AppShell } from './app-shell';
 import { CaseFacts } from './case-facts';
 import { DecisionTrace } from './decision-trace';
@@ -15,6 +17,10 @@ export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
   const [result, setResult] = useState<CaseEvaluationResult>();
   const [errorCode, setErrorCode] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const [review, setReview] = useState<PublicReviewDecision>();
+  const [reply, setReply] = useState<ReplyRunRecord>();
+  const [replyError, setReplyError] = useState<string>();
+  const [generatingReply, setGeneratingReply] = useState(false);
 
   async function runEvaluation() {
     setLoading(true);
@@ -36,6 +42,29 @@ export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
     }
   }
 
+  async function generateReply() {
+    if (!review) return;
+    setGeneratingReply(true);
+    setReplyError(undefined);
+    try {
+      const response = await fetch(`/api/cases/${caseFixture.id}/reply`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reviewId: review.id }),
+      });
+      const payload = await response.json() as ReplyRunRecord | { error?: { code?: string } };
+      if (!response.ok || !('status' in payload)) {
+        setReplyError('error' in payload ? payload.error?.code ?? 'REPLY_GENERATION_FAILED' : 'REPLY_GENERATION_FAILED');
+        return;
+      }
+      setReply(payload);
+    } catch {
+      setReplyError('REPLY_GENERATION_FAILED');
+    } finally {
+      setGeneratingReply(false);
+    }
+  }
+
   return (
     <AppShell>
       <main className="case-workspace">
@@ -50,8 +79,17 @@ export function CaseWorkspace({ caseFixture }: { caseFixture: CaseFixture }) {
         <div className="workspace-columns">
           <div className="case-column">
             <CaseFacts caseFixture={caseFixture} />
-            <PolicyDecision decision={result?.policyDecision} loading={loading} onEvaluate={runEvaluation} />
-            {result ? <ReviewForm caseId={caseFixture.id} maximumRefundCents={caseFixture.order.totalCents} /> : null}
+            <PolicyDecision
+              decision={result?.policyDecision}
+              generatingReply={generatingReply}
+              loading={loading}
+              onEvaluate={runEvaluation}
+              onGenerateReply={generateReply}
+              reply={reply}
+              replyError={replyError}
+              review={review}
+            />
+            {result ? <ReviewForm caseId={caseFixture.id} maximumRefundCents={caseFixture.order.totalCents} onRecorded={setReview} /> : null}
           </div>
           <DecisionTrace errorCode={errorCode} onRetry={runEvaluation} outcome={result?.run.outcome} />
         </div>

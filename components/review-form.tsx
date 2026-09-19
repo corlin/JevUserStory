@@ -7,13 +7,14 @@ import type { PublicReviewDecision } from '../src/services/review-service';
 type ReviewFormProps = {
   caseId: string;
   maximumRefundCents: number;
+  onRecorded?: (decision: PublicReviewDecision) => void;
 };
 
 function createIdempotencyKey(): string {
   return globalThis.crypto?.randomUUID?.() ?? `review-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function ReviewForm({ caseId, maximumRefundCents }: ReviewFormProps) {
+export function ReviewForm({ caseId, maximumRefundCents, onRecorded }: ReviewFormProps) {
   const key = useRef<string>(createIdempotencyKey());
   const [refundCents, setRefundCents] = useState(maximumRefundCents);
   const [note, setNote] = useState('');
@@ -41,6 +42,7 @@ export function ReviewForm({ caseId, maximumRefundCents }: ReviewFormProps) {
         return;
       }
       setDecision(payload);
+      onRecorded?.(payload);
     } catch {
       setErrorCode('REVIEW_FAILED');
     } finally {
