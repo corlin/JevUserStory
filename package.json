@@ -1,0 +1,18 @@
+{
+  "name": "vercel-ai-gateway-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "evaluate": "tsx --env-file=.env.local evaluate.ts",
+    "start": "tsx --env-file=.env.local index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ai": "^7.0.107"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2"
+  }
+}
