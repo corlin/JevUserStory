@@ -15,7 +15,8 @@ describe('secret leak gate', () => {
     const root = mkdtempSync(join(tmpdir(), 'resolveops-secret-gate-'));
     directories.push(root);
     mkdirSync(join(root, '.next', 'static', 'chunks'), { recursive: true });
-    writeFileSync(join(root, '.next', 'static', 'chunks', 'app.js'), 'window.config={"authorization":"Bearer synthetic-canary"};');
+    const emittedCanary = ['window.config={"authorization":"', 'Bearer synthetic-canary"};'].join('');
+    writeFileSync(join(root, '.next', 'static', 'chunks', 'app.js'), emittedCanary);
     writeFileSync(join(root, 'safe.txt'), 'safe');
     execFileSync('git', ['init', '-q'], { cwd: root });
     execFileSync('git', ['add', 'safe.txt'], { cwd: root });
