@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
-test('operator views Decision Lab metrics, filters slices, simulates policy and manages versions', async ({ page }) => {
+test('operator views Decision Lab metrics, filters slices, simulates policy and manages versions', async ({ page }, testInfo) => {
+  const policyVersion = `resolveops-policy-e2e-${testInfo.project.name}-${Date.now()}`;
   // 1. Visit Decision Lab
   await page.goto('/decision-lab');
   await expect(page.getByRole('heading', { name: 'Decision Lab' })).toBeVisible();
@@ -26,7 +27,7 @@ test('operator views Decision Lab metrics, filters slices, simulates policy and 
   const saveBtn = page.getByRole('button', { name: '另存为新策略...' });
   await saveBtn.click();
 
-  await page.getByLabel('策略版本号 (ID)').fill('resolveops-policy-e2e-v2');
+  await page.getByLabel('策略版本号 (ID)').fill(policyVersion);
   await page.getByLabel('策略名称').fill('E2E Test Policy');
   await page.getByRole('button', { name: '确认发布策略' }).click();
 
@@ -35,6 +36,5 @@ test('operator views Decision Lab metrics, filters slices, simulates policy and 
   // 5. Navigate to Policies page and verify
   await page.goto('/policies');
   await expect(page.getByRole('heading', { name: 'Policy Repository' })).toBeVisible();
-  await expect(page.getByText('E2E Test Policy')).toBeVisible();
-  await expect(page.getByText('resolveops-policy-e2e-v2')).toBeVisible();
+  await expect(page.getByText(policyVersion, { exact: true })).toBeVisible();
 });

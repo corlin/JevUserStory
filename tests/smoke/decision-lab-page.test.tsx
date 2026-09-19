@@ -15,7 +15,7 @@ describe('Decision Lab and Policies pages smoke test', () => {
 
     expect(screen.getByRole('heading', { name: 'Decision Lab' })).toBeInTheDocument();
     expect(screen.getByText('策略模拟器 (Zero-cost Policy Simulator)')).toBeInTheDocument();
-    expect(screen.getByText(/Pre-evaluated Baseline/)).toBeInTheDocument();
+    expect(screen.getByText(/Pre-evaluated Baseline|Live Measured/)).toBeInTheDocument();
   });
 
   it('renders Policies page with version management', async () => {

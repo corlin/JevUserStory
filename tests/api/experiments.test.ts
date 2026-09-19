@@ -4,6 +4,7 @@ import { createGetExperimentDetailsHandler } from '../../app/api/experiments/[id
 import { createListPoliciesHandler, createSavePolicyHandler } from '../../app/api/policies/route';
 import { createGetActivePolicyHandler, createSetActivePolicyHandler } from '../../app/api/policies/active/route';
 import { POLICY_V1 } from '../../src/policy/policy-v1';
+import { GatewayEvaluationError } from '../../src/gateway/evaluate-case';
 
 describe('experiments api routes', () => {
   const fakeService = {
@@ -73,6 +74,41 @@ describe('experiments api routes', () => {
     expect(postRes.status).toBe(201);
     const postBody = await postRes.json();
     expect(postBody.experiment.id).toBe('EXP-NEW');
+  });
+
+  it('rejects unsupported experiment inputs instead of silently running a baseline', async () => {
+    const postHandler = createRunExperimentHandler(fakeService as any);
+    const response = await postHandler(
+      new Request('http://localhost/api/experiments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ datasetSlice: 'everything-secret', sourceType: 'pretend-live' }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: { code: 'INVALID_EXPERIMENT_PAYLOAD' } });
+  });
+
+  it('returns a redacted Gateway error for a failed live experiment', async () => {
+    const postHandler = createRunExperimentHandler({
+      ...fakeService,
+      async runExperiment() {
+        throw new GatewayEvaluationError('GATEWAY_AUTHENTICATION_FAILED');
+      },
+    } as any);
+    const response = await postHandler(
+      new Request('http://localhost/api/experiments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ datasetSlice: 'all', sourceType: 'live' }),
+      }),
+    );
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({
+      error: { code: 'GATEWAY_AUTHENTICATION_FAILED' },
+    });
   });
 
   it('gets experiment details by id and returns 404 for unknown', async () => {
@@ -149,5 +185,59 @@ describe('policies api routes', () => {
       }),
     );
     expect(activeSetRes.status).toBe(200);
+  });
+
+  it('returns 404 without clearing the active policy when a version does not exist', async () => {
+    const stableActivePolicy = activePolicy;
+    const repo = {
+      ...fakePolicyRepo,
+      setActivePolicy() {
+        throw new Error('POLICY_VERSION_NOT_FOUND');
+      },
+    };
+    const handler = createSetActivePolicyHandler(repo as any);
+    const response = await handler(
+      new Request('http://localhost/api/policies/active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: 'missing-policy' }),
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(activePolicy).toEqual(stableActivePolicy);
+  });
+
+  it('rejects malformed and duplicate policy versions with stable public errors', async () => {
+    const saveHandler = createSavePolicyHandler(fakePolicyRepo as any);
+    const malformedResponse = await saveHandler(
+      new Request('http://localhost/api/policies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          version: 'resolveops-policy-invalid',
+          thresholds: { ...POLICY_V1, refundAutoMinimum: 2 },
+        }),
+      }),
+    );
+    expect(malformedResponse.status).toBe(400);
+
+    const duplicateHandler = createSavePolicyHandler({
+      ...fakePolicyRepo,
+      savePolicyVersion() {
+        throw new Error('POLICY_VERSION_EXISTS');
+      },
+    } as any);
+    const duplicateResponse = await duplicateHandler(
+      new Request('http://localhost/api/policies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          version: 'resolveops-policy-v1',
+          thresholds: POLICY_V1,
+        }),
+      }),
+    );
+    expect(duplicateResponse.status).toBe(409);
   });
 });

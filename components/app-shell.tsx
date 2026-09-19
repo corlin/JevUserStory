@@ -43,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar-note">
           <span className="live-dot" aria-hidden="true" />
-          <div><strong>Gateway connected</strong><small>Server-side credentials</small></div>
+          <div><strong>Gateway server-side</strong><small>Live calls require credentials</small></div>
         </div>
       </aside>
       {children}

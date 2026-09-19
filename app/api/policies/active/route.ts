@@ -29,7 +29,10 @@ export function createSetActivePolicyHandler(repo = getDefaultRepo()) {
       repo.setActivePolicy(body.version);
       const updated = repo.findActivePolicy();
       return Response.json({ activePolicy: updated }, { status: 200 });
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'POLICY_VERSION_NOT_FOUND') {
+        return Response.json({ error: { code: error.message } }, { status: 404 });
+      }
       return Response.json({ error: { code: 'INTERNAL_ERROR' } }, { status: 500 });
     }
   };

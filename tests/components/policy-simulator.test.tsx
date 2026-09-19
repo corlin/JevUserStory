@@ -46,7 +46,7 @@ describe('policy simulator component', () => {
   });
 
   it('allows saving simulated policy as new version', async () => {
-    const handleSave = vi.fn().mockResolvedValue(undefined);
+    const handleSave = vi.fn().mockResolvedValue(true);
 
     render(
       <PolicySimulator

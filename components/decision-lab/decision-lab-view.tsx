@@ -32,6 +32,22 @@ const SLICE_FILTERS = [
   { id: 'tag:ambiguous', label: '多意图歧义 (2 案)' },
 ] as const;
 
+const EXPERIMENT_ERROR_MESSAGES: Record<string, string> = {
+  GATEWAY_AUTHENTICATION_FAILED: 'Gateway 凭据无效或未配置，请检查服务端 AI_GATEWAY_API_KEY。',
+  GATEWAY_MODEL_RESTRICTED: '当前 Gateway 凭据没有 Jev 模型访问权限。',
+  GATEWAY_RATE_LIMITED: 'Gateway 已限流，请稍后重试。',
+  GATEWAY_TIMEOUT: 'Gateway 调用超时，请缩小切片后重试。',
+  GATEWAY_UNAVAILABLE: 'Gateway 暂时不可用，请稍后重试。',
+  INVALID_EVALUATION_RESPONSE: 'Gateway 返回了无法验证的评测结果，本次运行未标记为 Live Measured。',
+  INVALID_EXPERIMENT_PAYLOAD: '评测配置无效，请刷新页面后重试。',
+};
+
+async function readPublicError(response: Response, fallback: string): Promise<string> {
+  const body = await response.json().catch(() => undefined) as { error?: { code?: string } } | undefined;
+  const code = body?.error?.code;
+  return code ? (EXPERIMENT_ERROR_MESSAGES[code] ?? `${fallback}（${code}）`) : fallback;
+}
+
 export function DecisionLabView({
   initialExperiment,
   initialResults,
@@ -67,20 +83,24 @@ export function DecisionLabView({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ datasetSlice: selectedSlice, sourceType }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        // Fetch new experiment details
-        const detailRes = await fetch(`/api/experiments/${data.experiment.id}`);
-        if (detailRes.ok) {
-          const detail = await detailRes.json();
-          setCurrentExperiment(detail.experiment);
-          setCurrentResults(detail.results);
-          setNotification(sourceType === 'live' ? '✓ 真实 Gateway 评测已完成并入库！' : '✓ 基准评测已刷新！');
-          setTimeout(() => setNotification(null), 3000);
-        }
+      if (!res.ok) {
+        setNotification(await readPublicError(res, '评测执行失败，请检查网络或配置。'));
+        return;
       }
+      const data = await res.json();
+      // Fetch new experiment details
+      const detailRes = await fetch(`/api/experiments/${data.experiment.id}`);
+      if (!detailRes.ok) {
+        setNotification(await readPublicError(detailRes, '评测已执行，但结果读取失败。'));
+        return;
+      }
+      const detail = await detailRes.json();
+      setCurrentExperiment(detail.experiment);
+      setCurrentResults(detail.results);
+      setNotification(sourceType === 'live' ? '✓ 真实 Gateway 评测已完成并入库！' : '✓ 基准评测已刷新！');
+      setTimeout(() => setNotification(null), 3000);
     } catch {
-      setNotification('评测执行失败，请检查网络或配置');
+      setNotification('评测执行失败，请检查网络或配置。');
     } finally {
       setIsRunningLive(false);
     }
@@ -91,15 +111,27 @@ export function DecisionLabView({
     name: string;
     description: string;
     thresholds: PolicyThresholds;
-  }) => {
-    const res = await fetch('/api/policies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newPolicy),
-    });
-    if (res.ok) {
+  }): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/policies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPolicy),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => undefined) as { error?: { code?: string } } | undefined;
+        const code = body?.error?.code;
+        setNotification(code === 'POLICY_VERSION_EXISTS'
+          ? `策略版本 ${newPolicy.version} 已存在；历史快照不可覆盖，请换一个版本号。`
+          : '策略保存失败，请检查版本号和阈值。');
+        return false;
+      }
       setNotification(`✓ 新策略版本 ${newPolicy.version} 已成功入库！`);
       setTimeout(() => setNotification(null), 3000);
+      return true;
+    } catch {
+      setNotification('策略保存失败，请检查网络后重试。');
+      return false;
     }
   };
 
@@ -152,7 +184,7 @@ export function DecisionLabView({
 
       {/* Notification Toast */}
       {notification && (
-        <div style={{ margin: '1rem 0', padding: '0.75rem 1rem', background: '#ecfdf5', color: '#065f46', borderRadius: '6px', fontSize: '0.85rem' }}>
+        <div aria-live="polite" role="status" style={{ margin: '1rem 0', padding: '0.75rem 1rem', background: '#ecfdf5', color: '#065f46', borderRadius: '6px', fontSize: '0.85rem' }}>
           {notification}
         </div>
       )}

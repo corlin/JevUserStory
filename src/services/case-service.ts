@@ -96,7 +96,8 @@ let defaultDatabase: ResolveOpsDatabase | undefined;
 let resolvedDefaultService: CaseService | undefined;
 
 export function getDefaultDatabase(): ResolveOpsDatabase {
-  defaultDatabase ??= openDatabase(join(process.cwd(), 'data', 'resolveops.sqlite'));
+  const databasePath = process.env.RESOLVEOPS_DB_PATH ?? join(process.cwd(), 'data', 'resolveops.sqlite');
+  defaultDatabase ??= openDatabase(databasePath);
   seedCases(defaultDatabase, DEMO_CASES);
   return defaultDatabase;
 }

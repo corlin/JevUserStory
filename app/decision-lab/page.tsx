@@ -8,9 +8,11 @@ import { join } from 'node:path';
 
 const defaultDatabasePath = process.env.RESOLVEOPS_DB_PATH ?? join(process.cwd(), 'data', 'resolveops.sqlite');
 
+export const dynamic = 'force-dynamic';
+
 export default async function DecisionLabPage() {
   const experiments = defaultExperimentService.listExperiments();
-  const latestOrBaseline = experiments[0];
+  const latestOrBaseline = experiments.find((experiment) => experiment.status === 'completed') ?? experiments[0];
   const details = defaultExperimentService.getExperimentDetails(latestOrBaseline.id)!;
 
   const db = openDatabase(defaultDatabasePath);

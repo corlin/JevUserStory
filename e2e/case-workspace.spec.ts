@@ -1,4 +1,8 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+function evaluationButton(page: Page) {
+  return page.getByRole('button', { name: /运行.*(Jev|评估)|Jev.*运行/ });
+}
 
 const evaluationResult = {
   run: {
@@ -65,7 +69,8 @@ test('operator completes a safe simulated case workflow', async ({ page }) => {
   await page.getByRole('button', { name: '全部案件' }).click();
   await page.getByRole('link', { name: '打开 DEMO-001' }).click();
 
-  await page.getByRole('button', { name: '运行 Jev 评估' }).click();
+  await expect(page.getByRole('button', { name: '运行 Jev 评估' })).toBeVisible();
+  await evaluationButton(page).click();
   await expect(page.getByText('Policy action: review')).toBeVisible();
   await expect(page.getByText('PROMPT_INJECTION_REVIEW')).toBeVisible();
 
@@ -93,7 +98,7 @@ for (const code of ['GATEWAY_AUTHENTICATION_FAILED', 'GATEWAY_RATE_LIMITED'] as 
       await route.fulfill({ status: 502, json: { error: { code } } });
     });
     await page.goto('/cases/DEMO-001');
-    await page.getByRole('button', { name: '运行 Jev 评估' }).click();
+    await evaluationButton(page).click();
     await expect(page.getByRole('button', { name: '正在评估…' })).toBeDisabled();
     await expect(page.getByText(code)).toBeVisible();
     await expect(page.getByRole('button', { name: '重新运行评估' })).toBeVisible();
@@ -115,7 +120,7 @@ test('malformed model output fails closed to review', async ({ page }) => {
     },
   }));
   await page.goto('/cases/DEMO-001');
-  await page.getByRole('button', { name: '运行 Jev 评估' }).click();
+  await evaluationButton(page).click();
   await expect(page.getByText('INVALID_EVALUATION_RESPONSE').first()).toBeVisible();
   await expect(page.getByText('Policy action: review')).toBeVisible();
 });

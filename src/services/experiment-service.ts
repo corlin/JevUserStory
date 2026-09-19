@@ -30,6 +30,7 @@ import { DEMO_CASES } from '../fixtures/cases';
 import { evaluatePolicy } from '../policy/evaluate-policy';
 import { POLICY_V1 } from '../policy/policy-v1';
 import { QUESTION_SET_VERSION } from '../gateway/question-set-v1';
+import { evaluateCase as evaluateGatewayCase } from '../gateway/evaluate-case';
 import { calculateExperimentMetrics } from '../metrics/metrics-engine';
 
 export type RunExperimentOptions = {
@@ -159,9 +160,27 @@ export function seedBaselineEntities(database: ResolveOpsDatabase): void {
   }
 }
 
-export function createExperimentService(database: ResolveOpsDatabase) {
+type ExperimentServiceDependencies = {
+  evaluateCase?: typeof evaluateGatewayCase;
+};
+
+function buildEvaluationState(caseFixture: CaseFixture): string {
+  return JSON.stringify({
+    customer: caseFixture.customer,
+    order: caseFixture.order,
+    payments: caseFixture.payments,
+    shipment: caseFixture.shipment,
+    refundPolicy: caseFixture.refundPolicy,
+  });
+}
+
+export function createExperimentService(
+  database: ResolveOpsDatabase,
+  dependencies: ExperimentServiceDependencies = {},
+) {
   // Always ensure baseline is ready
   seedBaselineEntities(database);
+  const evaluateLiveCase = dependencies.evaluateCase ?? evaluateGatewayCase;
 
   return {
     listExperiments(): ExperimentRecord[] {
@@ -212,36 +231,54 @@ export function createExperimentService(database: ResolveOpsDatabase) {
       const activePolicy = findActivePolicy(database);
       const policyThresholds = options.customThresholds ?? activePolicy?.thresholds ?? POLICY_V1;
 
-      for (let i = 0; i < targetCases.length; i++) {
-        const fixture = targetCases[i];
-        const answers = generateBaselineAnswers(fixture);
-        const decision = evaluatePolicy(fixture, { status: 'valid', answers }, policyThresholds);
+      try {
+        for (let i = 0; i < targetCases.length; i++) {
+          const fixture = targetCases[i];
+          const liveRun = sourceType === 'live'
+            ? await evaluateLiveCase(buildEvaluationState(fixture), { caseId: fixture.id })
+            : undefined;
+          if (liveRun?.outcome.status === 'invalid') {
+            throw new Error(liveRun.outcome.errorCode);
+          }
 
-        saveExperimentCaseResult(database, {
-          id: `RES-${experimentId}-${fixture.id}`,
-          experimentId,
-          caseId: fixture.id,
-          answers,
-          groundTruth: fixture.groundTruth,
-          latencyMs: 150 + Math.floor(Math.random() * 80),
-          usage: { inputTokens: 480, outputTokens: 25, totalTokens: 505 },
-          policyAction: decision.action,
-          reasonCodes: decision.reasonCodes,
-          proposedRefundCents: decision.proposedRefundCents,
-          createdAt: new Date().toISOString(),
-        });
+          const answers = liveRun?.outcome.status === 'valid'
+            ? liveRun.outcome.answers
+            : generateBaselineAnswers(fixture);
+          const decision = evaluatePolicy(fixture, { status: 'valid', answers }, policyThresholds);
+
+          saveExperimentCaseResult(database, {
+            id: `RES-${experimentId}-${fixture.id}`,
+            experimentId,
+            caseId: fixture.id,
+            answers,
+            groundTruth: fixture.groundTruth,
+            latencyMs: liveRun?.latencyMs ?? 150 + Math.floor(Math.random() * 80),
+            usage: liveRun?.usage ?? { inputTokens: 480, outputTokens: 25, totalTokens: 505 },
+            policyAction: decision.action,
+            reasonCodes: decision.reasonCodes,
+            proposedRefundCents: decision.proposedRefundCents,
+            createdAt: liveRun?.createdAt ?? new Date().toISOString(),
+          });
+
+          updateExperimentStatus(database, experimentId, {
+            status: 'running',
+            completedCases: i + 1,
+            modelId: liveRun?.modelId,
+          });
+        }
 
         updateExperimentStatus(database, experimentId, {
-          status: 'running',
-          completedCases: i + 1,
+          status: 'completed',
+          completedCases: targetCases.length,
+          finishedAt: new Date().toISOString(),
         });
+      } catch (error) {
+        updateExperimentStatus(database, experimentId, {
+          status: 'failed',
+          finishedAt: new Date().toISOString(),
+        });
+        throw error;
       }
-
-      updateExperimentStatus(database, experimentId, {
-        status: 'completed',
-        completedCases: targetCases.length,
-        finishedAt: new Date().toISOString(),
-      });
 
       return findExperiment(database, experimentId)!;
     },

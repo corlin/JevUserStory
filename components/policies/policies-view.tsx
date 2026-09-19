@@ -31,7 +31,11 @@ export function PoliciesView({ initialPolicies }: PoliciesViewProps) {
         );
         setMessage(`✓ 已成功将 ${version} 设为运行策略！案件工作台将以此版本为准。`);
         setTimeout(() => setMessage(null), 3500);
+      } else {
+        setMessage('策略激活失败：该版本可能已不存在，请刷新页面后重试。');
       }
+    } catch {
+      setMessage('策略激活失败：网络或服务暂时不可用。');
     } finally {
       setActivatingVersion(null);
     }
@@ -51,7 +55,7 @@ export function PoliciesView({ initialPolicies }: PoliciesViewProps) {
       </header>
 
       {message && (
-        <div style={{ margin: '1rem 0', padding: '0.75rem 1rem', background: '#ecfdf5', color: '#065f46', borderRadius: '6px', fontSize: '0.85rem' }}>
+        <div aria-live="polite" role="status" style={{ margin: '1rem 0', padding: '0.75rem 1rem', background: '#ecfdf5', color: '#065f46', borderRadius: '6px', fontSize: '0.85rem' }}>
           {message}
         </div>
       )}

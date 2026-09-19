@@ -143,4 +143,29 @@ describe('policy repository', () => {
 
     database.close();
   });
+
+  it('keeps policy snapshots immutable and preserves the active version on an invalid switch', () => {
+    const database = createTestDatabase();
+    const original = {
+      id: 'POL-V1',
+      version: 'resolveops-policy-v1',
+      name: 'Original policy',
+      description: 'Immutable snapshot',
+      thresholds: POLICY_V1,
+      isActive: true,
+      createdAt: '2026-09-20T00:00:00.000Z',
+    };
+    savePolicyVersion(database, original);
+
+    expect(() => savePolicyVersion(database, {
+      ...original,
+      name: 'Overwritten policy',
+    })).toThrow('POLICY_VERSION_EXISTS');
+    expect(findPolicyVersion(database, original.version)?.name).toBe('Original policy');
+
+    expect(() => setActivePolicy(database, 'missing-policy')).toThrow('POLICY_VERSION_NOT_FOUND');
+    expect(findActivePolicy(database)?.version).toBe(original.version);
+
+    database.close();
+  });
 });

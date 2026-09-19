@@ -100,7 +100,7 @@ export function saveExperiment(database: ResolveOpsDatabase, record: ExperimentR
 export function updateExperimentStatus(
   database: ResolveOpsDatabase,
   id: string,
-  update: { status: ExperimentStatus; completedCases?: number; finishedAt?: string },
+  update: { status: ExperimentStatus; completedCases?: number; finishedAt?: string; modelId?: string },
 ): void {
   const current = findExperiment(database, id);
   if (!current) return;
@@ -110,9 +110,9 @@ export function updateExperimentStatus(
 
   database.prepare(`
     UPDATE experiments
-    SET status = ?, completed_cases = ?, finished_at = ?
+    SET status = ?, completed_cases = ?, finished_at = ?, model_id = ?
     WHERE id = ?
-  `).run(update.status, completedCases, finishedAt, id);
+  `).run(update.status, completedCases, finishedAt, update.modelId ?? current.modelId, id);
 }
 
 export function findExperiment(database: ResolveOpsDatabase, id: string): ExperimentRecord | undefined {

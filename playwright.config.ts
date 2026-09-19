@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { join } from 'node:path';
 
 export default defineConfig({
   testDir: './e2e',
@@ -12,6 +13,9 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run dev',
+    env: {
+      RESOLVEOPS_DB_PATH: join(process.cwd(), 'test-results', `resolveops-e2e-${process.pid}.sqlite`),
+    },
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
   },

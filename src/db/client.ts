@@ -36,6 +36,20 @@ function migrateReplyRuns(database: ResolveOpsDatabase): void {
   }
 }
 
+function migrateLegacyExperimentProvenance(database: ResolveOpsDatabase): void {
+  const migrationId = '2026-09-20-real-live-experiments-v1';
+  const applied = database.prepare('SELECT 1 FROM schema_migrations WHERE id = ?').get(migrationId);
+  if (applied) return;
+
+  database.transaction(() => {
+    // Before this migration, the live code path generated deterministic baseline
+    // answers. Preserve the rows while correcting their evidence label.
+    database.prepare("UPDATE experiments SET source_type = 'baseline' WHERE source_type = 'live'").run();
+    database.prepare('INSERT INTO schema_migrations (id, applied_at) VALUES (?, ?)')
+      .run(migrationId, new Date().toISOString());
+  })();
+}
+
 export function openDatabase(path: string): ResolveOpsDatabase {
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
   const database = new Database(path);
@@ -43,5 +57,6 @@ export function openDatabase(path: string): ResolveOpsDatabase {
   database.pragma('foreign_keys = ON');
   database.exec(SCHEMA_SQL);
   migrateReplyRuns(database);
+  migrateLegacyExperimentProvenance(database);
   return database;
 }

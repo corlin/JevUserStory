@@ -55,7 +55,7 @@ npm run dev
 ## 验证命令
 
 ```bash
-npm run check          # 类型检查、78个单元/组件测试、生产构建、密钥泄漏门禁
+npm run check          # 类型检查、87个单元/组件测试、生产构建、密钥泄漏门禁
 npm run test:e2e       # Chromium 桌面与移动端 12 个端到端用户旅程测试
 npm run live:smoke     # 真实九问 Jev + GPT-5 Nano + Jev 回复复核
 npm run example:evaluate
@@ -78,6 +78,8 @@ npm run example:text
 案件标签、ground truth 和 E2E 响应是为了可重复验收而设计的演示基准，不是生产准确率。界面显示的实时概率、token 使用量和延迟来自对应运行记录；只有在实际执行 Gateway 调用后，才能视为真实测量。Decision Lab 明确通过徽标（`Live Measured` vs `Pre-evaluated Baseline`）区分固定基准结果与真实实测结果。
 
 SQLite 文件写入 `data/`，运行记录与策略版本不可变，人工决定使用幂等键避免重复。密钥、授权头、数据库文件、测试报告和构建输出都不应进入 Git。
+
+> **部署边界：** 当前 SQLite 存储面向单机演示。不要直接把它当作 Vercel Serverless 上的持久化数据库；无持久卷的运行环境无法保证 `data/` 中的写入跨实例、重启或重新部署保留。若要多人或线上使用，应先将 repository 层切换到托管 PostgreSQL 等持久存储，并补充身份认证、租户隔离、备份与恢复。
 
 ## English summary
 

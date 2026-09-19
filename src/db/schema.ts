@@ -1,4 +1,9 @@
 export const SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS schema_migrations (
+    id TEXT PRIMARY KEY,
+    applied_at TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS cases (
     id TEXT PRIMARY KEY,
     fixture_json TEXT NOT NULL,

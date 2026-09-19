@@ -14,7 +14,7 @@ type PolicySimulatorProps = {
     name: string;
     description: string;
     thresholds: PolicyThresholds;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
 };
 
 export function PolicySimulator({
@@ -30,6 +30,7 @@ export function PolicySimulator({
   const [newDesc, setNewDesc] = useState('在 Decision Lab 中调优保存的策略快照');
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   // Instant 60fps re-evaluation across all cases using pure isomorphic evaluatePolicy
   const simulationResults = useMemo(() => {
@@ -94,13 +95,18 @@ export function PolicySimulator({
     e.preventDefault();
     if (!onSavePolicy) return;
     setIsSaving(true);
+    setSaveError(false);
     try {
-      await onSavePolicy({
+      const saved = await onSavePolicy({
         version: newVersion,
         name: newName,
         description: newDesc,
         thresholds: { ...thresholds, id: newVersion },
       });
+      if (!saved) {
+        setSaveError(true);
+        return;
+      }
       setSaveSuccess(true);
       setTimeout(() => {
         setShowSaveDialog(false);
@@ -272,6 +278,7 @@ export function PolicySimulator({
               </div>
 
               {saveSuccess && <div style={{ color: '#16a34a', fontSize: '0.85rem' }}>✓ 策略版本已成功保存并入库！</div>}
+              {saveError && <div role="alert" style={{ color: '#b91c1c', fontSize: '0.85rem' }}>策略保存失败，请查看页面提示后重试。</div>}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button

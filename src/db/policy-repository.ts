@@ -27,17 +27,15 @@ export function savePolicyVersion(
   database: ResolveOpsDatabase,
   policy: PolicyVersionRecord,
 ): PolicyVersionRecord {
+  if (findPolicyVersion(database, policy.version)) {
+    throw new Error('POLICY_VERSION_EXISTS');
+  }
   const statement = database.prepare(`
     INSERT INTO policy_versions (
       id, version, name, description, thresholds_json, is_active, created_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?
     )
-    ON CONFLICT(version) DO UPDATE SET
-      name = excluded.name,
-      description = excluded.description,
-      thresholds_json = excluded.thresholds_json,
-      is_active = excluded.is_active
   `);
 
   statement.run(
@@ -72,6 +70,9 @@ export function listPolicyVersions(database: ResolveOpsDatabase): PolicyVersionR
 }
 
 export function setActivePolicy(database: ResolveOpsDatabase, version: string): void {
+  if (!findPolicyVersion(database, version)) {
+    throw new Error('POLICY_VERSION_NOT_FOUND');
+  }
   database.transaction(() => {
     database.prepare('UPDATE policy_versions SET is_active = 0').run();
     database.prepare('UPDATE policy_versions SET is_active = 1 WHERE version = ?').run(version);

@@ -7,6 +7,8 @@ import { seedBaselineEntities } from '../../src/services/experiment-service';
 
 const defaultDatabasePath = process.env.RESOLVEOPS_DB_PATH ?? join(process.cwd(), 'data', 'resolveops.sqlite');
 
+export const dynamic = 'force-dynamic';
+
 export default async function PoliciesPage() {
   const db = openDatabase(defaultDatabasePath);
   seedBaselineEntities(db);
