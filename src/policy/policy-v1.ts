@@ -1,0 +1,9 @@
+export const POLICY_V1 = {
+  id: 'resolveops-policy-v1',
+  refundAutoMinimum: 0.9,
+  policySupportMinimum: 0.9,
+  injectionReviewMinimum: 0.8,
+  booleanUncertainLower: 0.35,
+  booleanUncertainUpper: 0.65,
+  highRiskRefundCents: 5000,
+} as const;
