@@ -4,15 +4,36 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "evaluate": "tsx --env-file=.env.local evaluate.ts",
-    "start": "tsx --env-file=.env.local index.ts",
-    "typecheck": "tsc --noEmit"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "example:text": "tsx --env-file=.env.local index.ts",
+    "example:evaluate": "tsx --env-file=.env.local evaluate.ts"
   },
   "dependencies": {
-    "ai": "^7.0.107"
+    "ai": "^7.0.107",
+    "better-sqlite3": "^13.0.3",
+    "next": "^16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "jsdom": "^29.1.1",
     "tsx": "^4.23.13",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   }
 }
